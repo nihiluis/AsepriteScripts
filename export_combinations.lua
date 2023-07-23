@@ -19,11 +19,13 @@ if err ~= 0 then return err end
 
 -- Variable to keep track of number of current combination.
 local combination = 0
+local currently_visible_layers = {}
 
 local function exportCombinations(sprite, g, output_path)
     if #g == 0 then
-        os.execute("mkdir \"" .. Dirname(output_path) .. "\"")
-        sprite:saveCopyAs(output_path:gsub("{combination}", combination))
+        -- os.execute("mkdir \"" .. Dirname(output_path) .. "\"")
+        local combination_text = table.concat(currently_visible_layers, "-")
+        sprite:saveCopyAs(output_path:gsub("{combination}", combination_text))
         combination = combination + 1
         return
     end
@@ -40,8 +42,10 @@ local function exportCombinations(sprite, g, output_path)
     table.remove(groups, 1)
     for _, layer in ipairs(changing_group.layers) do
         layer.isVisible = true
+        local idx = table.insert(currently_visible_layers, layer.name)
         exportCombinations(sprite, groups, output_path)
         layer.isVisible = false
+        table.remove(currently_visible_layers, idx)
     end
 end
 
