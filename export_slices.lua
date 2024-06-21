@@ -49,6 +49,34 @@ dlg:combobox{
     options = {'png', 'gif', 'jpg'}
 }
 dlg:slider{id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1}
+dlg:check{
+    id = "spritesheet",
+    label = "Export as spritesheet:",
+    selected = false,
+    onclick = function()
+        -- Show this options only if spritesheet is checked.
+        dlg:modify{
+            id = "trim",
+            visible = dlg.data.spritesheet
+        }
+        dlg:modify{
+            id = "mergeDuplicates",
+            visible = dlg.data.spritesheet
+        }
+    end
+}
+dlg:check{
+    id = "trim",
+    label = "  Trim:",
+    selected = false,
+    visible = false
+}
+dlg:check{
+    id = "mergeDuplicates",
+    label = "  Merge duplicates:",
+    selected = false,
+    visible = false
+}
 dlg:check{id = "save", label = "Save sprite:", selected = false}
 dlg:button{id = "ok", text = "Export"}
 dlg:button{id = "cancel", text = "Cancel"}
@@ -104,7 +132,38 @@ for _, slice in ipairs(Sprite.slices) do
     -- Create output dir in case it doesn't exist.
     os.execute("mkdir \"" .. Dirname(output_path .. slice_filename) .. "\"")
     slice_count[slice_id] = slice_count[slice_id] - 1
-    Sprite:saveCopyAs(output_path .. slice_filename)
+
+    local filename = output_path .. slice_filename
+    if dlg.data.spritesheet then
+        app.command.ExportSpriteSheet{
+            ui=false,
+            askOverwrite=false,
+            type=SpriteSheetType.HORIZONTAL,
+            columns=0,
+            rows=0,
+            width=0,
+            height=0,
+            bestFit=false,
+            textureFilename=filename,
+            dataFilename="",
+            dataFormat=SpriteSheetDataFormat.JSON_HASH,
+            borderPadding=0,
+            shapePadding=0,
+            innerPadding=0,
+            trim=dlg.data.trim,
+            mergeDuplicates=dlg.data.mergeDuplicates,
+            extrude=false,
+            openGenerated=false,
+            layer="",
+            tag="",
+            splitLayers=false,
+            listLayers=layer,
+            listTags=true,
+            listSlices=true,
+        }
+    else
+        sprite:saveCopyAs(filename)
+    end
 end
 
 -- Restore original bounds.

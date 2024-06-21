@@ -31,11 +31,43 @@ if err ~= 0 then return err end
 
 local currently_visible_layers = {}
 
-local function exportCombinations(sprite, g, output_path)
+local function exportCombinations(sprite, g, output_path, data)
     if #g == 0 then
         -- os.execute("mkdir \"" .. Dirname(output_path) .. "\"")
         local combination_text = table.concat(currently_visible_layers, "-")
-        sprite:saveCopyAs(output_path:gsub("{layerpair}", combination_text))
+        local filename = output_path:gsub("{layerpair}", combination_text)
+
+        if data.spritesheet then
+            app.command.ExportSpriteSheet{
+                ui=false,
+                askOverwrite=false,
+                type=SpriteSheetType.HORIZONTAL,
+                columns=0,
+                rows=0,
+                width=0,
+                height=0,
+                bestFit=false,
+                textureFilename=filename,
+                dataFilename="",
+                dataFormat=SpriteSheetDataFormat.JSON_HASH,
+                borderPadding=0,
+                shapePadding=0,
+                innerPadding=0,
+                trim=data.trim,
+                mergeDuplicates=data.mergeDuplicates,
+                extrude=false,
+                openGenerated=false,
+                layer="",
+                tag="",
+                splitLayers=false,
+                listLayers=layer,
+                listTags=true,
+                listSlices=true,
+            }
+        else
+            sprite:saveCopyAs(filename)
+        end
+
         return
     end
 
@@ -52,7 +84,7 @@ local function exportCombinations(sprite, g, output_path)
     for _, layer in ipairs(changing_group.layers) do
         layer.isVisible = true
         local idx = table.insert(currently_visible_layers, layer.name)
-        exportCombinations(sprite, groups, output_path)
+        exportCombinations(sprite, groups, output_path, data)
         layer.isVisible = false
         table.remove(currently_visible_layers, idx)
     end
@@ -78,6 +110,34 @@ dlg:combobox {
     options = { 'png', 'gif', 'jpg' }
 }
 dlg:slider { id = 'scale', label = 'Export Scale:', min = 1, max = 10, value = 1 }
+dlg:check{
+    id = "spritesheet",
+    label = "Export as spritesheet:",
+    selected = false,
+    onclick = function()
+        -- Show this options only if spritesheet is checked.
+        dlg:modify{
+            id = "trim",
+            visible = dlg.data.spritesheet
+        }
+        dlg:modify{
+            id = "mergeDuplicates",
+            visible = dlg.data.spritesheet
+        }
+    end
+}
+dlg:check{
+    id = "trim",
+    label = "  Trim:",
+    selected = false,
+    visible = false
+}
+dlg:check{
+    id = "mergeDuplicates",
+    label = "  Merge duplicates:",
+    selected = false,
+    visible = false
+}
 dlg:check { id = "save", label = "Save sprite:", selected = false }
 dlg:button { id = "ok", text = "Export" }
 dlg:button { id = "cancel", text = "Cancel" }
@@ -141,7 +201,7 @@ for _, slice in ipairs(Sprite.slices) do
     slice_count[slice_id] = slice_count[slice_id] - 1
     -- Sprite:saveCopyAs(output_path .. slice_filename)
     local layers_visibility_data = HideLayers(Sprite)
-    exportCombinations(Sprite, Sprite.layers, output_path .. slice_filename)
+    exportCombinations(Sprite, Sprite.layers, output_path .. slice_filename, dlg.data)
 
     RestoreLayersVisibility(Sprite, layers_visibility_data)
 end
